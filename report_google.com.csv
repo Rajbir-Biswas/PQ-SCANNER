@@ -1,0 +1,9 @@
+Domain,TLS,Algorithm,KeySize,QuantumRisk
+google.com,TLSv1.3,ECC,256,HIGH
+www.google.com,TLSv1.3,ECC,256,HIGH
+api.google.com,TLSv1.3,ECC,256,HIGH
+mail.google.com,TLSv1.3,ECC,256,HIGH
+dev.google.com,ERROR,-,-,UNKNOWN
+test.google.com,ERROR,-,-,UNKNOWN
+staging.google.com,ERROR,-,-,UNKNOWN
+cdn.google.com,ERROR,-,-,UNKNOWN
