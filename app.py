@@ -3,6 +3,7 @@ import ssl
 import socket
 import csv
 import io
+import os
 import re
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -133,5 +134,6 @@ def download():
     )
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+    if __name__ == "__main__":
+      	port = int(os.environ.get("PORT", 5000))
+    	app.run(host="0.0.0.0", port=port)
