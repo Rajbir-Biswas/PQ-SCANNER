@@ -3,8 +3,8 @@ import ssl
 import socket
 import csv
 import io
-import os
 import re
+import os
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa, ec
@@ -99,7 +99,6 @@ def home():
     if request.method == "POST":
         domains_input = request.form["domains"]
 
-        # ✅ SMART INPUT HANDLING (NO INDENT ERROR)
         domains = re.split(r"[,\s]+", domains_input)
         domains = [d.strip() for d in domains if d.strip()]
 
@@ -134,6 +133,6 @@ def download():
     )
 
 
-    if __name__ == "__main__":
-      	port = int(os.environ.get("PORT", 5000))
-    	app.run(host="0.0.0.0", port=port)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
