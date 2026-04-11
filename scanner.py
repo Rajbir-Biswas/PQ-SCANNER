@@ -4,66 +4,39 @@ import socket
 import csv
 import io
 import re
+import os
+from datetime import datetime
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa, ec
 
 app = Flask(__name__)
-
 last_results = []
 
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>PQ Scanner Dashboard</title>
-</head>
-<body>
+# -------- NETWORK SCAN --------
+def scan_ports(domain):
+    ports = [21, 22, 80, 443]
+    results = []
 
-<h2>Post-Quantum Crypto Scanner</h2>
+    for port in ports:
+        try:
+            sock = socket.socket()
+            sock.settimeout(1)
+            sock.connect((domain, port))
+            results.append(f"{port}:OPEN")
+            sock.close()
+        except:
+            results.append(f"{port}:CLOSED")
 
-<form method="POST">
-    <textarea name="domains" rows="6" cols="50"
-    placeholder="Enter domains (one per line)"></textarea><br><br>
-    <button type="submit">Scan</button>
-</form>
+    return ", ".join(results)
 
-{% if results %}
-    <h3>Scan Results ({{ results|length }} domains):</h3>
 
-    <table border="1">
-        <tr>
-            <th>Domain</th>
-            <th>TLS</th>
-            <th>Algorithm</th>
-            <th>Key Size</th>
-            <th>Risk</th>
-        </tr>
-
-        {% for r in results %}
-        <tr>
-            <td>{{ r[0] }}</td>
-            <td>{{ r[1] }}</td>
-            <td>{{ r[2] }}</td>
-            <td>{{ r[3] }}</td>
-            <td>{{ r[4] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <br>
-    <a href="/download">⬇ Download CSV Report</a>
-{% endif %}
-
-</body>
-</html>
-"""
-
+# -------- TLS + CERT SCAN --------
 def scan_domain(domain):
     try:
         context = ssl.create_default_context()
 
-        with socket.create_connection((domain, 443), timeout=3) as sock:
+        with socket.create_connection((domain, 443), timeout=5) as sock:
             with context.wrap_socket(sock, server_hostname=domain) as ssock:
 
                 tls = ssock.version()
@@ -82,38 +55,134 @@ def scan_domain(domain):
                     algo = "ECC"
                     key_size = pubkey.key_size
 
-                risk = "HIGH" if algo in ["RSA", "ECC"] else "LOW"
+                # Current Risk
+                if algo == "RSA" and key_size < 2048:
+                    current_risk = "HIGH"
+                elif algo == "RSA":
+                    current_risk = "LOW"
+                elif algo == "ECC":
+                    current_risk = "LOW"
+                else:
+                    current_risk = "UNKNOWN"
 
-                return [domain, tls, algo, key_size, risk]
+                # Quantum Risk
+                quantum_risk = "HIGH" if algo in ["RSA", "ECC"] else "LOW"
 
-    except:
-        return [domain, "ERROR", "-", "-", "UNKNOWN"]
+                issuer = cert.issuer.rfc4514_string()
+                expiry = cert.not_valid_after.strftime("%Y-%m-%d")
+
+                # 🔍 NETWORK SCAN
+                port_info = scan_ports(domain)
+
+                return [
+                    domain,
+                    tls,
+                    algo,
+                    key_size,
+                    current_risk,
+                    quantum_risk,
+                    port_info,
+                    issuer,
+                    expiry
+                ]
+
+    except Exception as e:
+        return [domain, "ERROR", "-", "-", "-", "-", "-", str(e), "-"]
 
 
+# -------- UI --------
+HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+<title>PQ Scanner Pro</title>
+<style>
+body { font-family: Arial; background:#0f172a; color:white; text-align:center; }
+textarea { width:60%; padding:10px; }
+button { padding:10px 20px; background:#22c55e; border:none; color:white; }
+table { margin:auto; border-collapse:collapse; margin-top:20px; }
+th, td { padding:10px; border:1px solid #333; }
+th { background:#1e293b; }
+.low { color:#32c55e; font-weight:bold; }
+.high { color:#ef4444; font-weight:bold; }
+</style>
+</head>
+
+<body>
+
+<h1>⚛️ Post-Quantum Scanner PRO</h1>
+
+<form method="POST">
+<textarea name="domains" placeholder="Enter domains (google.com, github.com)"></textarea><br><br>
+<button type="submit">Scan Now</button>
+</form>
+
+{% if results %}
+<table>
+<tr>
+<th>Domain</th>
+<th>TLS</th>
+<th>Algo</th>
+<th>Key</th>
+<th>Current</th>
+<th>Quantum</th>
+<th>Ports</th>
+<th>Issuer</th>
+<th>Expiry</th>
+</tr>
+
+{% for r in results %}
+<tr>
+<td>{{r[0]}}</td>
+<td>{{r[1]}}</td>
+<td>{{r[2]}}</td>
+<td>{{r[3]}}</td>
+
+<td class="{{ 'low' if r[4]=='LOW' else 'high' }}">{{r[4]}}</td>
+<td class="{{ 'high' if r[5]=='HIGH' else 'low' }}">{{r[5]}}</td>
+
+<td>{{r[6]}}</td>
+<td>{{r[7]}}</td>
+<td>{{r[8]}}</td>
+</tr>
+{% endfor %}
+</table>
+
+<br>
+<a href="/download" style="color:#22c55e;">Download Report</a>
+{% endif %}
+
+</body>
+</html>
+"""
+
+
+@app.route("/", methods=["GET", "POST"])
 def home():
     global last_results
     results = []
 
     if request.method == "POST":
         domains_input = request.form["domains"]
-
         domains = re.split(r"[,\s]+", domains_input)
         domains = [d.strip() for d in domains if d.strip()]
 
         for d in domains:
             results.append(scan_domain(d))
 
+        last_results = results
+
+    return render_template_string(HTML, results=results)
+
+
 @app.route("/download")
 def download():
     global last_results
 
-    if not last_results:
-        return "No scan data available. Please run a scan first."
-
     output = io.StringIO()
     writer = csv.writer(output)
 
-    writer.writerow(["Domain", "TLS", "Algorithm", "KeySize", "Risk"])
+    writer.writerow(["Domain", "TLS", "Algo", "Key", "Current Risk", "Quantum Risk", "Ports", "Issuer", "Expiry"])
     writer.writerows(last_results)
 
     output.seek(0)
@@ -127,4 +196,5 @@ def download():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
