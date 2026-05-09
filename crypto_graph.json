@@ -1,0 +1,65 @@
+{
+  "nodes": {
+    "Domain:google.com": {
+      "type": "Domain",
+      "value": "google.com"
+    },
+    "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-01": {
+      "type": "Certificate",
+      "value": "CN=WR2,O=Google Trust Services,C=US_2026-07-01"
+    },
+    "Algorithm:ECC": {
+      "type": "Algorithm",
+      "value": "ECC"
+    },
+    "Key:256": {
+      "type": "Key",
+      "value": "256"
+    },
+    "Issuer:CN=WR2,O=Google Trust Services,C=US": {
+      "type": "Issuer",
+      "value": "CN=WR2,O=Google Trust Services,C=US"
+    },
+    "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-13": {
+      "type": "Certificate",
+      "value": "CN=WR2,O=Google Trust Services,C=US_2026-07-13"
+    }
+  },
+  "edges": [
+    {
+      "from": "Domain:google.com",
+      "relation": "uses",
+      "to": "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-01"
+    },
+    {
+      "from": "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-01",
+      "relation": "uses_algo",
+      "to": "Algorithm:ECC"
+    },
+    {
+      "from": "Algorithm:ECC",
+      "relation": "has_key",
+      "to": "Key:256"
+    },
+    {
+      "from": "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-01",
+      "relation": "signed_by",
+      "to": "Issuer:CN=WR2,O=Google Trust Services,C=US"
+    },
+    {
+      "from": "Domain:google.com",
+      "relation": "uses",
+      "to": "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-13"
+    },
+    {
+      "from": "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-13",
+      "relation": "uses_algo",
+      "to": "Algorithm:ECC"
+    },
+    {
+      "from": "Certificate:CN=WR2,O=Google Trust Services,C=US_2026-07-13",
+      "relation": "signed_by",
+      "to": "Issuer:CN=WR2,O=Google Trust Services,C=US"
+    }
+  ]
+}

@@ -7,3 +7,4 @@ dev.google.com,ERROR,-,-,UNKNOWN
 test.google.com,ERROR,-,-,UNKNOWN
 staging.google.com,ERROR,-,-,UNKNOWN
 cdn.google.com,ERROR,-,-,UNKNOWN
+writer.writerow(["Domain","TLS","Algo","Key","Current Risk","Quantum Risk","Ports","Issuer","Expiry","Reason","Headers"])
